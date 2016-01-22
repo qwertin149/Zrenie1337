@@ -1,1 +1,77 @@
+import cv2
+import numpy as np
+from random import randint
 
+width = 600
+length = 600
+
+
+def compare(x, y):
+    return x[0] == y[0] and\
+           x[1] == y[1] and\
+           x[2] == y[2]
+
+
+def createImg(x, y):
+    img = np.ndarray(shape=(x, y, 3), dtype=np.uint8)
+    img.fill(200)
+    return img
+
+
+def findBlackPoints(img):
+    points = []
+    for x in range(img.shape[0]):
+        for y in range(img.shape[1]):
+            if compare(img[x, y], (0, 0, 0)):
+                points.append((x, y, 1))
+    return points
+
+
+def drawPoints(img, numberOfPoints):
+    for g in range(numberOfPoints):
+        x = randint(0, img.shape[0] - 1)
+        y = randint(0, img.shape[1] - 1)
+        if compare(img[x, y], (0, 0, 0)):
+            drawPoints(img, g + 1)
+        else:
+            img[x, y] = [0, 0, 0]
+
+
+def drawLine(img, point1, point2):
+    line = np.cross(point1, point2)
+    a, b, c = line
+    x1 = 0
+    x2 = width - 1
+    y1 = -(a * x1 + c) / b
+    y2 = -(a * x2 + c) / b
+    cv2.line(img, (y1, x1), (y2, x2), (0, 0, 0))
+    return line
+
+
+def appendLines(img, points):
+    lines = []
+    for i, point1 in enumerate(points):
+        for j, point2 in enumerate(points[i + 1:], start=i):
+            lines.append(drawLine(img, point1, point2))
+    return lines
+
+
+def showIntersectionOfLines(img, lines):
+    for i, line1 in enumerate(lines):
+        for line2 in lines[i + 1:]:
+            x, y, k = np.cross(line1, line2)
+            x = x / k
+            y = y / k
+            if 0 <= x < width and 0 <= y < length:
+                cv2.circle(img, (y, x), 2, (0, 0, 255), -1)
+
+
+img = createImg(width, length)
+drawPoints(img, 16)
+points = findBlackPoints(img)
+lines = appendLines(img, points)
+showIntersectionOfLines(img, lines)
+
+cv2.imshow('ex02_2', img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
