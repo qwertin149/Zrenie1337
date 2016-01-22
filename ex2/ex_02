@@ -1,1 +1,62 @@
-sdsds
+__author__ = 'Сергей'
+
+import cv2
+import numpy as np
+
+
+def FuncWarpAffine(img, topLeft1, botRight1, topLeft2, botRight2):
+    rows, cols, ch = img.shape
+
+    vert1 = np.float32([[topLeft1[0], topLeft1[1]],
+                        [botRight1[0], botRight1[1]],
+                        [botRight1[0], topLeft1[1]]])
+    vert2 = np.float32([[topLeft2[0], topLeft2[1]],
+                        [botRight2[0], botRight2[1]],
+                        [botRight2[0], topLeft2[1]]])
+
+    Transform = cv2.getAffineTransform(vert1, vert2)
+    img = cv2.warpAffine(img, Transform, (cols, rows))
+    return img
+
+
+def FuncRemap(img, topLeft1, bottomRight1, topLeft2, bottomRight2):
+    def diff(point1, point2):
+        return point2[0] - point1[0], point2[1] - point1[1]
+
+    diff1 = diff(topLeft1, bottomRight1)
+    diff2 = diff(topLeft2, bottomRight2)
+
+    map_x = np.zeros(img.shape[:2], np.float32)
+    map_y = np.zeros(img.shape[:2], np.float32)
+
+    for i in range(img.shape[0]):
+        for j in range(img.shape[1]):
+            map_x[i, j] = j / (diff2[1] / diff1[1])
+            map_y[i, j] = i / (diff2[0] / diff1[0])
+
+    img = cv2.remap(img, map_x, map_y, cv2.INTER_CUBIC)
+
+
+    diff3 = diff(topLeft1, topLeft2)
+
+    for i in range(img.shape[0]):
+        for j in range(img.shape[1]):
+            map_x[i, j] = j - diff3[0]
+            map_y[i, j] = i - diff3[1]
+
+    img = cv2.remap(img, map_x, map_y, cv2.INTER_CUBIC)
+
+    return img
+
+
+img = cv2.imread('photo3.png')
+
+
+cv2.imshow('Base', img)
+img = cv2.copyMakeBorder(img, 0, 500, 0, 800, cv2.BORDER_CONSTANT, value=[0, 0, 0])
+img1 = FuncWarpAffine(img, (0, 0), (5, 5), (0, 0), (10, 10))
+img = FuncRemap(img, (0, 0), (5, 5), (5, 5), (20, 20))
+cv2.imshow('Remap', img)
+cv2.imshow('WarpAffine', img1)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
