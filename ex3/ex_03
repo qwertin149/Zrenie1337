@@ -1,1 +1,55 @@
+import cv2
+import numpy as np
+import math
+
+src = cv2.imread('lol1.jpg')
+
+srcPoints = np.float32([[314, 143],
+                        [409, 170],
+                        [314, 384],
+                        [409, 374]])
+dstPoints = np.float32([[0, 0],
+                        [239, 0],
+                        [0, 244],
+                        [239, 244]])
+
+
+M, _ = cv2.findHomography(srcPoints, dstPoints, cv2.RANSAC)
+dst = cv2.warpPerspective(src, M, (240, 245))
+
+cv2.imshow('inputImage', src)
+cv2.imshow('outputImage', dst)
+
+point_color = [0, 255, 0]
+check_points = np.float32([[340, 190, 1], [370, 200, 1], [345, 280, 1], [380, 300, 1]])
+
+
+for x, y, c in check_points:
+    src[y, x] = point_color
+cv2.imshow('markedInput', src)
+marked_dst = cv2.warpPerspective(src, M, (240, 245))
+cv2.imshow('markedOutput', marked_dst)
+
+
+def find_mark(img, pts, epsilon=10):
+    y, x = pts
+    my, mx = 0, 0
+    gr_level = 0
+    for i in range(y - epsilon, y + epsilon + 1):
+        for j in range(x - epsilon, x + epsilon + 1):
+            if list(img[i, j])[1] > gr_level:
+                my, mx = i, j
+                gr_level = list(img[i, j])[1]
+    return my, mx
+
+errors = []
+for point in check_points:
+    x, y, k = np.dot(M, point)
+    x, y = int(x / k), int(y / k)
+    mark_y, mark_x = find_mark(marked_dst, (y, x))
+    errors.append(math.sqrt((x - mark_x) ** 2 + (y - mark_y) ** 2))
+
+print('errors - ' + format(errors))
+
+cv2.waitKey(0)
 
